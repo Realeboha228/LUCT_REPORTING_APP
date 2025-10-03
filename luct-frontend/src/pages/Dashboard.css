@@ -1,0 +1,11 @@
+.grey-card {
+  background-color: #6c757d; /* grey */
+  color: white;
+  height: 200px; /* taller cards */
+}
+
+.hover-card:hover {
+  transform: scale(1.05);
+  transition: transform 0.3s;
+  cursor: pointer;
+}
