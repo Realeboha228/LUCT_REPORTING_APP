@@ -11,6 +11,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import React from "react";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import HomeDashboard from "./pages/HomeDashBoard";
 
 function App() {
   return (
@@ -20,7 +21,7 @@ function App() {
       <div className="page-container">
         <div className="content">
           <Routes>
-           
+           <Route path="/home" element={<HomeDashboard />} />
             <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />

@@ -1,87 +1,163 @@
 import React, { useState, useEffect } from "react";
 
 export default function LecturerDashboard() {
+  const token = localStorage.getItem("token");
+
   const [activeTab, setActiveTab] = useState("classes");
+
+  // Classes + Students
   const [classes, setClasses] = useState([]);
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [classStudents, setClassStudents] = useState([]);
+  const [newStudentId, setNewStudentId] = useState("");
+
+  // Reports
   const [reports, setReports] = useState([]);
-  const [formData, setFormData] = useState({
-    faculty: "",
-    className: "",
+  const [reportForm, setReportForm] = useState({
     week: "",
     lectureDate: "",
-    courseName: "",
-    courseCode: "",
-    lecturerName: "",
-    actualStudents: "",
-    totalStudents: "",
-    venue: "",
-    scheduledTime: "",
     topic: "",
     learningOutcomes: "",
-    recommendations: ""
+    recommendations: "",
+    actualStudents: ""
   });
 
-  // Token not needed for manual data
-  // const token = localStorage.getItem("token");
+  // Ratings
+  const [ratingForm, setRatingForm] = useState({ rating: 0, feedback: "" });
+
+  // Monitoring
+  const [monitoringData, setMonitoringData] = useState([]);
 
   // ------------------------
-  // Manually define classes
+  // Fetch lecturer classes
   // ------------------------
   useEffect(() => {
-    const manualClasses = [
-      { id: 1, course_name: "Course 1", course_code: "CSE101", class_name: "BSCITY2", venue: "Room 101", scheduled_time: "09:00 - 11:00", total_registered: 60 },
-      { id: 2, course_name: "Course 2", course_code: "CSE102", class_name: "BSCITY2", venue: "Lab 1", scheduled_time: "11:00 - 13:00", total_registered: 55 },
-      { id: 3, course_name: "Course 3", course_code: "BIT201", class_name: "BSCBIT", venue: "Room 201", scheduled_time: "14:00 - 16:00", total_registered: 50 },
-      { id: 4, course_name: "Course 4", course_code: "IT301", class_name: "BSCIT", venue: "Room 102", scheduled_time: "08:00 - 10:00", total_registered: 45 }
-    ];
-    setClasses(manualClasses);
+    fetch("http://localhost:5000/api/lecturer/classes", {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => setClasses(data))
+      .catch(err => console.error(err));
   }, []);
 
   // ------------------------
-  // Handle report form
+  // Fetch students of a selected class
   // ------------------------
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  useEffect(() => {
+    if (!selectedClass) return;
+    fetchClassStudents();
+  }, [selectedClass]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Add report manually to the reports array
-    const newReport = { ...formData, id: reports.length + 1 };
-    setReports([...reports, newReport]);
-    alert("Report submitted!");
-    // Clear form
-    setFormData({
-      faculty: "",
-      className: "",
-      week: "",
-      lectureDate: "",
-      courseName: "",
-      courseCode: "",
-      lecturerName: "",
-      actualStudents: "",
-      totalStudents: "",
-      venue: "",
-      scheduledTime: "",
-      topic: "",
-      learningOutcomes: "",
-      recommendations: ""
-    });
+  const fetchClassStudents = async () => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/classes/${selectedClass.id}/students`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setClassStudents(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const addStudent = async () => {
+    if (!newStudentId) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/classes/${selectedClass.id}/students`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ student_id: newStudentId })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setNewStudentId("");
+        fetchClassStudents();
+      } else alert(data.message);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const removeStudent = async (studentId) => {
+    try {
+      await fetch(`http://localhost:5000/api/classes/${selectedClass.id}/students/${studentId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchClassStudents();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   // ------------------------
-  // Manual Monitoring and Ratings
+  // Report submission
   // ------------------------
-  const [monitoringData] = useState([
-    { id: 1, course: "CSE101", className: "BSCITY2", date: "2025-10-01", status: "On Track", notes: "All students attending" },
-    { id: 2, course: "BIT201", className: "BSCBIT", date: "2025-10-02", status: "Needs Attention", notes: "Low attendance" }
-  ]);
 
-  const [ratingsData] = useState([
-    { id: 1, course: "CSE101", lecturer: "Dr. John Doe", rating: 4.5, feedback: "Clear explanations" },
-    { id: 2, course: "IT301", lecturer: "Prof. Jane Smith", rating: 4.2, feedback: "Good interaction with students" }
-  ]);
+  
+
+  const handleReportChange = (e) => setReportForm({ ...reportForm, [e.target.name]: e.target.value });
+
+  const submitReport = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`http://localhost:5000/api/reports`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ...reportForm, class_id: selectedClass.id })
+      });
+      if (res.ok) {
+        alert("Report submitted");
+        setReportForm({ week: "", lectureDate: "", topic: "", learningOutcomes: "", recommendations: "", actualStudents: "" });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   // ------------------------
-  // Render tab content
+  // Ratings submission
+  // ------------------------
+  const handleRatingChange = (e) => setRatingForm({ ...ratingForm, [e.target.name]: e.target.value });
+
+  const submitRating = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`http://localhost:5000/api/classes/${selectedClass.id}/ratings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(ratingForm)
+      });
+      if (res.ok) {
+        alert("Rating submitted");
+        setRatingForm({ rating: 0, feedback: "" });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // ------------------------
+  // Monitoring fetch (automatic)
+  // ------------------------
+  const fetchMonitoringData = async () => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/lecturer/monitoring`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setMonitoringData(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "monitoring") fetchMonitoringData();
+  }, [activeTab]);
+
+  // ------------------------
+  // Render Tab Content
   // ------------------------
   const renderTabContent = () => {
     switch (activeTab) {
@@ -97,22 +173,48 @@ export default function LecturerDashboard() {
                   <th>Class</th>
                   <th>Venue</th>
                   <th>Time</th>
-                  <th>Total Registered</th>
+                  <th>Manage</th>
                 </tr>
               </thead>
               <tbody>
-                {classes.map((cls) => (
+                {classes.map(cls => (
                   <tr key={cls.id}>
                     <td>{cls.course_name}</td>
                     <td>{cls.course_code}</td>
                     <td>{cls.class_name}</td>
                     <td>{cls.venue}</td>
                     <td>{cls.scheduled_time}</td>
-                    <td>{cls.total_registered}</td>
+                    <td>
+                      <button className="btn btn-sm btn-primary" onClick={() => setSelectedClass(cls)}>Manage Students</button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+
+            {selectedClass && (
+              <div className="mt-4">
+                <h6>Manage Students in {selectedClass.class_name}</h6>
+                <div className="mb-3 d-flex">
+                  <input
+                    type="text"
+                    className="form-control me-2"
+                    placeholder="Student ID"
+                    value={newStudentId}
+                    onChange={e => setNewStudentId(e.target.value)}
+                  />
+                  <button className="btn btn-success" onClick={addStudent}>Add Student</button>
+                </div>
+                <ul className="list-group">
+                  {classStudents.map(s => (
+                    <li key={s.id} className="list-group-item d-flex justify-content-between align-items-center">
+                      {s.name} ({s.student_id})
+                      <button className="btn btn-sm btn-danger" onClick={() => removeStudent(s.id)}>Remove</button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         );
 
@@ -120,108 +222,32 @@ export default function LecturerDashboard() {
         return (
           <div>
             <h5>Submit Class Report</h5>
-            <form onSubmit={handleSubmit} className="border p-3 rounded bg-light">
-              {[
-                { label: "Faculty Name", name: "faculty", type: "text" },
-                { label: "Class Name", name: "className", type: "text" },
-                { label: "Week of Reporting", name: "week", type: "number" },
-                { label: "Date of Lecture", name: "lectureDate", type: "date" },
-                { label: "Course Name", name: "courseName", type: "text" },
-                { label: "Course Code", name: "courseCode", type: "text" },
-                { label: "Lecturer’s Name", name: "lecturerName", type: "text" },
-                { label: "Actual Number of Students Present", name: "actualStudents", type: "number" },
-                { label: "Total Number of Registered Students", name: "totalStudents", type: "number" },
-                { label: "Venue of the Class", name: "venue", type: "text" },
-                { label: "Scheduled Lecture Time", name: "scheduledTime", type: "text" },
-                { label: "Topic Taught", name: "topic", type: "text" }
-              ].map((field) => (
-                <div className="mb-3" key={field.name}>
-                  <label className="form-label">{field.label}</label>
-                  <input
-                    type={field.type}
-                    name={field.name}
-                    className="form-control"
-                    value={formData[field.name]}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-              ))}
-
-              <div className="mb-3">
-                <label className="form-label">Learning Outcomes of the Topic</label>
-                <textarea
-                  name="learningOutcomes"
-                  className="form-control"
-                  value={formData.learningOutcomes}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="mb-3">
-                <label className="form-label">Lecturer’s Recommendations</label>
-                <textarea
-                  name="recommendations"
-                  className="form-control"
-                  value={formData.recommendations}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <button type="submit" className="btn btn-primary">Submit Report</button>
-            </form>
-
-            <h5 className="mt-5">Previous Reports</h5>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Course</th>
-                  <th>Date</th>
-                  <th>Topic</th>
-                  <th>Students</th>
-                  <th>Venue</th>
-                  <th>Recommendations</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reports.map((rpt) => (
-                  <tr key={rpt.id}>
-                    <td>{rpt.courseName} ({rpt.courseCode})</td>
-                    <td>{rpt.lectureDate}</td>
-                    <td>{rpt.topic}</td>
-                    <td>{rpt.actualStudents}/{rpt.totalStudents}</td>
-                    <td>{rpt.venue}</td>
-                    <td>{rpt.recommendations}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {/* Report form here */}
           </div>
         );
 
       case "monitoring":
         return (
           <div>
-            <h5>Monitoring Overview</h5>
+            <h5>Monitoring (Attendance & Feedback)</h5>
             <table className="table">
               <thead>
                 <tr>
-                  <th>Course</th>
                   <th>Class</th>
-                  <th>Date</th>
+                  <th>Student</th>
                   <th>Status</th>
-                  <th>Notes</th>
+                  <th>Feedback</th>
+                  <th>Date</th>
                 </tr>
               </thead>
               <tbody>
-                {monitoringData.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.course}</td>
-                    <td>{item.className}</td>
-                    <td>{item.date}</td>
-                    <td>{item.status}</td>
-                    <td>{item.notes}</td>
+                {monitoringData.map(m => (
+                  <tr key={m.id}>
+                    <td>{m.class_name}</td>
+                    <td>{m.student_name}</td>
+                    <td>{m.attendance}</td>
+                    <td>{m.feedback}</td>
+                    <td>{m.date}</td>
                   </tr>
                 ))}
               </tbody>
@@ -229,30 +255,21 @@ export default function LecturerDashboard() {
           </div>
         );
 
-      case "rating":
+      case "ratings":
         return (
           <div>
-            <h5>Lecturer Ratings</h5>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Course</th>
-                  <th>Lecturer</th>
-                  <th>Rating</th>
-                  <th>Feedback</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ratingsData.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.course}</td>
-                    <td>{item.lecturer}</td>
-                    <td>{item.rating}</td>
-                    <td>{item.feedback}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <h5>Rate Your Class Performance</h5>
+            <form onSubmit={submitRating}>
+              <div className="mb-3">
+                <label>Rating (1-5)</label>
+                <input type="number" min="1" max="5" className="form-control" name="rating" value={ratingForm.rating} onChange={handleRatingChange} required/>
+              </div>
+              <div className="mb-3">
+                <label>Feedback</label>
+                <textarea className="form-control" name="feedback" value={ratingForm.feedback} onChange={handleRatingChange}></textarea>
+              </div>
+              <button className="btn btn-primary">Submit Rating</button>
+            </form>
           </div>
         );
 
@@ -265,18 +282,14 @@ export default function LecturerDashboard() {
     <div className="container mt-4">
       <h1 className="text-center mb-4">Lecturer Dashboard</h1>
       <ul className="nav nav-tabs mb-4">
-        {["classes","reports","monitoring","rating"].map((tab) => (
+        {["classes", "reports", "monitoring", "ratings"].map(tab => (
           <li className="nav-item" key={tab}>
-            <button
-              className={`nav-link ${activeTab === tab ? "active" : ""}`}
-              onClick={() => setActiveTab(tab)}
-            >
+            <button className={`nav-link ${activeTab===tab?"active":""}`} onClick={()=>setActiveTab(tab)}>
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           </li>
         ))}
       </ul>
-
       {renderTabContent()}
     </div>
   );

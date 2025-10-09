@@ -7,7 +7,7 @@ export default function Header() {
       <div className="container">
         <div className="title">LecturerReporting</div>
         <nav>
-        
+          <Link to="/home">Home</Link>
           <Link to="/login">Login</Link>
           <Link to="/register">Register</Link>
         </nav>
