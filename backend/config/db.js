@@ -6,7 +6,10 @@ const db = new Pool({
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASS || '0883',
   database: process.env.DB_NAME || 'luct_reporting_rea',
-  port: process.env.DB_PORT || 5432, // PostgreSQL default port
+  port: process.env.DB_PORT || 5432,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 // Optional: Test the connection
