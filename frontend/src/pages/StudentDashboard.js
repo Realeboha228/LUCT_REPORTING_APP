@@ -243,7 +243,7 @@ function StudentDashboard() {
 
       {/* Tab Navigation */}
       <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-3">
-        <Tab eventKey="attendance" title="📋 Class Attendance">
+        <Tab eventKey="attendance" title="Class Attendance">
           <Card className="p-4">
             <h4>Mark Class Attendance</h4>
             <form onSubmit={handleAttendanceSubmit}>
@@ -358,7 +358,7 @@ function StudentDashboard() {
           </Card>
         </Tab>
 
-        <Tab eventKey="complaint" title="📢 Lecturer Complaint">
+        <Tab eventKey="complaint" title="Lecturer Complaint">
           <Card className="p-4">
             <h4>Submit Lecturer Complaint</h4>
             <form onSubmit={handleComplaintSubmit}>
